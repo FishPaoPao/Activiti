@@ -23,7 +23,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @RestController
 public class TaskQueryResource extends AbstractTaskQueryResource {
 	
-	@RequestMapping(value = "/rest/query/tasks", method = RequestMethod.POST, produces = "application/json")
+	@Override
+    @RequestMapping(value = "/rest/query/tasks", method = RequestMethod.POST, produces = "application/json")
 	public ResultListDataRepresentation listTasks(@RequestBody ObjectNode requestNode) {
 		return super.listTasks(requestNode);	
 	}

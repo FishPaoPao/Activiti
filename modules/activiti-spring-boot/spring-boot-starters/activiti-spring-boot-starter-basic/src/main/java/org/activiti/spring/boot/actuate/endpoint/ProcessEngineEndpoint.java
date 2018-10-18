@@ -30,7 +30,7 @@ import java.util.*;
  * @author Josh Long
  */
 //@ConfigurationProperties(prefix = "endpoints.activiti")
-    @Endpoint(id="activiti")
+@Endpoint(id="activiti")
 public class ProcessEngineEndpoint {
 
     private final ProcessEngine processEngine;

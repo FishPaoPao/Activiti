@@ -19,6 +19,8 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.activiti.dmn.engine.DmnEngineConfiguration;
+import org.activiti.dmn.engine.configurator.DmnEngineConfigurator;
 import org.activiti.engine.FormService;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.IdentityService;
@@ -27,6 +29,10 @@ import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
+import org.activiti.engine.runtime.Clock;
+import org.activiti.form.api.FormRepositoryService;
+import org.activiti.form.engine.FormEngineConfiguration;
+import org.activiti.form.engine.configurator.FormEngineConfigurator;
 import org.activiti.spring.ProcessEngineFactoryBean;
 import org.activiti.spring.SpringAsyncExecutor;
 import org.activiti.spring.SpringCallerRunsRejectedJobsHandler;
@@ -118,6 +124,19 @@ public abstract class AbstractProcessEngineAutoConfiguration
     if (processEngineConfigurationConfigurer != null) {
     	processEngineConfigurationConfigurer.configure(conf);
     }
+    FormEngineConfiguration formEngineConfiguration = new FormEngineConfiguration();
+    formEngineConfiguration.setDataSource(dataSource);
+
+    FormEngineConfigurator formEngineConfigurator = new FormEngineConfigurator();
+    formEngineConfigurator.setFormEngineConfiguration(formEngineConfiguration);
+    conf.addConfigurator(formEngineConfigurator);
+
+    DmnEngineConfiguration dmnEngineConfiguration = new DmnEngineConfiguration();
+    dmnEngineConfiguration.setDataSource(dataSource);
+
+    DmnEngineConfigurator dmnEngineConfigurator = new DmnEngineConfigurator();
+    dmnEngineConfigurator.setDmnEngineConfiguration(dmnEngineConfiguration);
+    conf.addConfigurator(dmnEngineConfigurator);
 
     return conf;
   }
@@ -210,5 +229,22 @@ public abstract class AbstractProcessEngineAutoConfiguration
   @ConditionalOnMissingBean
   public TaskExecutor taskExecutor() {
     return new SimpleAsyncTaskExecutor();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public FormRepositoryService formEngineRepositoryService(ProcessEngine processEngine) {
+    return processEngine.getFormEngineRepositoryService();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public org.activiti.form.api.FormService formEngineFormService(ProcessEngine processEngine) {
+    return processEngine.getFormEngineFormService();
+  }
+  @Bean
+  @ConditionalOnMissingBean
+  public Clock clock(SpringProcessEngineConfiguration configuration) {
+      return configuration.getClock();
   }
 }
