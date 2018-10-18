@@ -85,7 +85,7 @@ public class UserService {
     		throw new IllegalArgumentException("Both username and password are required");
     	}
 
-    	User existing = userRepository.findOne(login);
+    	User existing = userRepository.getOne(login);
 
     	if(existing == null) {
     		User user = new User();
@@ -100,7 +100,7 @@ public class UserService {
             // Authorities
             if (authorities != null && authorities.length > 0) {
                 for (String authority : authorities) {
-                    Authority authorityEntity = authorityRepository.findOne(authority);
+                    Authority authorityEntity = authorityRepository.getOne(authority);
                     if (authorityEntity != null) {
                         if (user.getAuthorities() == null) {
                             user.setAuthorities(new HashSet<Authority>());
@@ -156,7 +156,7 @@ public class UserService {
     }
     
     public UserRepresentation getUserRepresentation(String login) {
-        User user = userRepository.findOne(login);
+        User user = userRepository.getOne(login);
         if (user != null) {
             return new UserRepresentation(user);
         }
@@ -164,7 +164,7 @@ public class UserService {
     }
     
     public AccountRepresentation getAccountRepresentation(String login) {
-        User user = userRepository.findOne(login);
+        User user = userRepository.getOne(login);
         if (user != null) {
             return new AccountRepresentation(user);
         }
@@ -172,11 +172,11 @@ public class UserService {
     }
     
     public User getUser(String login) {
-        return userRepository.findOne(login);
+        return userRepository.getOne(login);
     }
     
     protected User getUserFromDB(String login) {
-        User user = userRepository.findOne(login);
+        User user = userRepository.getOne(login);
         if (user == null) {
             throw new ActivitiServiceException("User with login '" + login +"' not found");
         }

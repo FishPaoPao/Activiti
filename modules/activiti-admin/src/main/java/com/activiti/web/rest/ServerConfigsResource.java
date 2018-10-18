@@ -71,7 +71,7 @@ public class ServerConfigsResource {
 	@ResponseStatus(value = HttpStatus.OK)
 	public void updateServer(@PathVariable Long serverId, @RequestBody ServerConfigRepresentation configRepresentation) {
 
-	    ServerConfig config = serverConfigService.findOne(serverId);
+	    ServerConfig config = serverConfigService.getOne(serverId);
 	    
 	    if (config == null) {
 	        throw new BadRequestException("Server with id '" + serverId
