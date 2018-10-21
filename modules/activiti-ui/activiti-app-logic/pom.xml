@@ -30,50 +30,62 @@
 		<dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-engine</artifactId>
+			<version>6.0.0</version>
         </dependency>
 		<dependency>
 			<groupId>org.activiti</groupId>
 			<artifactId>activiti-bpmn-model</artifactId>
+			<version>6.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.activiti</groupId>
 			<artifactId>activiti-bpmn-converter</artifactId>
+			<version>6.0.0</version>
 		</dependency>
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-bpmn-layout</artifactId>
-        </dependency>        
+			<version>6.0.0</version>
+        </dependency>
 		<dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-process-validation</artifactId>
+			<version>6.0.0</version>
         </dependency>
         <dependency>
         	<groupId>org.activiti</groupId>
         	<artifactId>activiti-json-converter</artifactId>
+			<version>6.0.0</version>
         </dependency>
         <dependency>
         	<groupId>org.activiti</groupId>
         	<artifactId>activiti-dmn-xml-converter</artifactId>
+			<version>6.0.0</version>
         </dependency>
         <dependency>
        	 	<groupId>org.activiti</groupId>
         	<artifactId>activiti-dmn-json-converter</artifactId>
+			<version>6.0.0</version>
       	</dependency>
       	<dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-form-engine</artifactId>
+			<version>6.0.0</version>
         </dependency>
 		<dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-form-model</artifactId>
+			<version>6.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-form-json-converter</artifactId>
+			<version>6.0.0</version>
         </dependency>
         <dependency>
         	<groupId>org.activiti</groupId>
         	<artifactId>activiti-spring</artifactId>
+			<version>6.0.0</version>
         </dependency>
 
 		<!-- LOGGING -->

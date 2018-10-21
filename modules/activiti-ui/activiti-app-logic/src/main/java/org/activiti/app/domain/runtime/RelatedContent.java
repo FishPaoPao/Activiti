@@ -27,6 +27,7 @@ import javax.persistence.TemporalType;
 import org.activiti.app.domain.common.IdBlockSize;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.validator.constraints.Length;
 
 
