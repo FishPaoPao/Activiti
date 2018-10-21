@@ -160,6 +160,9 @@ public class SecurityConfiguration {
 	                .antMatchers("/app/rest/idm/email-actions/*").permitAll()
 	                .antMatchers("/app/rest/idm/signups").permitAll()
 	                .antMatchers("/app/rest/idm/passwords").permitAll()
+					.antMatchers("/druid/**").authenticated()
+					.antMatchers("/actuator/**").authenticated()
+					.antMatchers("/manage/**").authenticated()
 	                .antMatchers("/app/**").authenticated();
 
 	        // Custom login form configurer to allow for non-standard HTTP-methods (eg. LOCK)
@@ -193,7 +196,8 @@ public class SecurityConfiguration {
 	@Order(1)
 	public static class ApiWebSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter {
 
-		protected void configure(HttpSecurity http) throws Exception {
+		@Override
+        protected void configure(HttpSecurity http) throws Exception {
 
 			http
 				.sessionManagement()

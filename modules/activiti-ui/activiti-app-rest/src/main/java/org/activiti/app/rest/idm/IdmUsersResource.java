@@ -131,18 +131,18 @@ public class IdmUsersResource {
     }
     
     @ResponseStatus(value = HttpStatus.OK)
-    @RequestMapping(value = "/rest/admin/users/{userId}", method = RequestMethod.DELETE)
-    public void deleteUser(@PathVariable String userId) {
-      validateAdminRole();
-      
-      List<Group> groups = identityService.createGroupQuery().groupMember(userId).list();
-      if (groups != null && groups.size() > 0) {
-        for (Group group : groups) {
-          identityService.deleteMembership(userId, group.getId());
-        }
+  @RequestMapping(value = "/rest/admin/users/{userId}", method = RequestMethod.DELETE)
+  public void deleteUser(@PathVariable String userId) {
+    validateAdminRole();
+
+    List<Group> groups = identityService.createGroupQuery().groupMember(userId).list();
+    if (groups != null && groups.size() > 0) {
+      for (Group group : groups) {
+        identityService.deleteMembership(userId, group.getId());
       }
-      identityService.deleteUser(userId);
     }
+    identityService.deleteUser(userId);
+  }
  
     
     @RequestMapping(value = "/rest/admin/users", method = RequestMethod.POST)
