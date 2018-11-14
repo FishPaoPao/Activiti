@@ -12,7 +12,11 @@
  */
 package org.activiti.app.rest.runtime;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.activiti.app.model.common.ResultListDataRepresentation;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.task.Task;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -22,10 +26,26 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @RestController
 public class ProcessInstanceQueryResource extends AbstractProcessInstanceQueryResource {
-    
-	@RequestMapping(value = "/rest/query/process-instances", method = RequestMethod.POST, produces = "application/json")
-  public ResultListDataRepresentation getProcessInstances(@RequestBody ObjectNode requestNode) {
+
+    @Autowired
+    private TaskService taskService;
+
+	@Override
+    @RequestMapping(value = "/rest/query/process-instances", method = RequestMethod.POST, produces = "application/json")
+    public ResultListDataRepresentation getProcessInstances(@RequestBody ObjectNode requestNode) {
 	  return super.getProcessInstances(requestNode);
   }
-	
+
+    @RequestMapping(value = "/rest/query/process-instance", method = RequestMethod.POST, produces = "application/json")
+    public String processInstanceQueryByTaskId(@RequestBody ObjectNode requestNode){
+        JsonNode taskIdNode = requestNode.get("taskId");
+        Task task = null;
+        if (taskIdNode != null && !taskIdNode.isNull()){
+            task = taskService.createTaskQuery().taskId(taskIdNode.asText()).singleResult();
+        }
+        assert task != null;
+        String processInstanceId = task.getProcessInstanceId();
+        return processInstanceId;
+    }
+
 }

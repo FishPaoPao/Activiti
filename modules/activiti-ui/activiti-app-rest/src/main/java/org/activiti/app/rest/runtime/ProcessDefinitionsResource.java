@@ -31,5 +31,4 @@ public class ProcessDefinitionsResource extends AbstractProcessDefinitionsResour
 	    
 	    return super.getProcessDefinitions(latest, deploymentKey);
     }
-	
 }

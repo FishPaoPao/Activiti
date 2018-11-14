@@ -26,7 +26,7 @@ public class TaskQueryResource extends AbstractTaskQueryResource {
 	@Override
     @RequestMapping(value = "/rest/query/tasks", method = RequestMethod.POST, produces = "application/json")
 	public ResultListDataRepresentation listTasks(@RequestBody ObjectNode requestNode) {
-		return super.listTasks(requestNode);	
+		return super.listTasks(requestNode);
 	}
 
 }
