@@ -24,18 +24,20 @@ import org.activiti.app.model.runtime.ProcessInstanceRepresentation;
 import org.activiti.app.model.runtime.RelatedContentRepresentation;
 import org.activiti.app.service.api.UserCache;
 import org.activiti.app.service.api.UserCache.CachedUser;
+import org.activiti.app.service.editor.ActivitiTaskNodeInfoService;
 import org.activiti.app.service.exception.BadRequestException;
+import org.activiti.app.service.oa.OAHelper;
 import org.activiti.app.service.runtime.ActivitiService;
 import org.activiti.app.service.runtime.PermissionService;
 import org.activiti.app.service.runtime.RelatedContentService;
-import org.activiti.bpmn.model.BpmnModel;
-import org.activiti.bpmn.model.FlowElement;
+import org.activiti.bpmn.model.*;
 import org.activiti.bpmn.model.Process;
-import org.activiti.bpmn.model.StartEvent;
 import org.activiti.engine.HistoryService;
+import org.activiti.engine.IdentityService;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.identity.User;
+import org.activiti.engine.identity.UserQuery;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -50,111 +52,122 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class AbstractProcessInstancesResource {
 
-  @Autowired
-  protected ActivitiService activitiService;
+    @Autowired
+    protected ActivitiService activitiService;
 
-  @Autowired
-  protected RepositoryService repositoryService;
+    @Autowired
+    protected RepositoryService repositoryService;
 
-  @Autowired
-  protected HistoryService historyService;
-  
-  @Autowired
-  protected FormRepositoryService formRepositoryService;
-  
-  @Autowired
-  protected FormService formService;
+    @Autowired
+    protected HistoryService historyService;
 
-  @Autowired
-  protected PermissionService permissionService;
+    @Autowired
+    protected FormRepositoryService formRepositoryService;
 
-  @Autowired
-  protected RelatedContentService relatedContentService;
+    @Autowired
+    protected FormService formService;
 
-  @Autowired
-  protected SimpleContentTypeMapper typeMapper;
+    @Autowired
+    protected PermissionService permissionService;
 
-  @Autowired
-  protected UserCache userCache;
+    @Autowired
+    protected RelatedContentService relatedContentService;
 
-  @Autowired
-  protected ObjectMapper objectMapper;
+    @Autowired
+    protected SimpleContentTypeMapper typeMapper;
 
-  public ProcessInstanceRepresentation startNewProcessInstance(CreateProcessInstanceRepresentation startRequest) {
-    if (StringUtils.isEmpty(startRequest.getProcessDefinitionId())) {
-      throw new BadRequestException("Process definition id is required");
-    }
-    
-    FormDefinition formDefinition = null;
-    Map<String, Object> variables = null;
+    @Autowired
+    protected UserCache userCache;
 
-    ProcessDefinition processDefinition = permissionService.getProcessDefinitionById(startRequest.getProcessDefinitionId());
+    @Autowired
+    protected ObjectMapper objectMapper;
 
-    if (startRequest.getValues() != null || startRequest.getOutcome() != null) {
-      BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinition.getId());
-      Process process = bpmnModel.getProcessById(processDefinition.getKey());
-      FlowElement startElement = process.getInitialFlowElement();
-      if (startElement instanceof StartEvent) {
-        StartEvent startEvent = (StartEvent) startElement;
-        if (StringUtils.isNotEmpty(startEvent.getFormKey())) {
-          formDefinition = formRepositoryService.getFormDefinitionByKey(startEvent.getFormKey());
-          if (formDefinition != null) {
-            variables = formService.getVariablesFromFormSubmission(formDefinition, startRequest.getValues(), startRequest.getOutcome());
-          }
+    @Autowired
+    protected IdentityService identityService;
+
+    public ProcessInstanceRepresentation startNewProcessInstance(CreateProcessInstanceRepresentation startRequest) {
+        if (StringUtils.isEmpty(startRequest.getProcessDefinitionId())) {
+            throw new BadRequestException("Process definition id is required");
         }
-      }
-    }
-    
-    ProcessInstance processInstance = activitiService.startProcessInstance(startRequest.getProcessDefinitionId(), variables, startRequest.getName());
 
-    // Mark any content created as part of the form-submission connected to the process instance
-    /*if (formSubmission != null) {
-      if (formSubmission.hasContent()) {
-        ObjectNode contentNode = objectMapper.createObjectNode();
-        submittedFormValuesJson.put("content", contentNode);
-        for (Entry<String, List<RelatedContent>> entry : formSubmission.getVariableContent().entrySet()) {
-          ArrayNode contentArray = objectMapper.createArrayNode();
-          for (RelatedContent content : entry.getValue()) {
-            relatedContentService.setContentField(content.getId(), entry.getKey(), processInstance.getId(), null);
-            contentArray.add(content.getId());
-          }
-          contentNode.put(entry.getKey(), contentArray);
+        FormDefinition formDefinition = null;
+        Map<String, Object> variables = null;
+
+        ProcessDefinition processDefinition = permissionService.getProcessDefinitionById(startRequest.getProcessDefinitionId());
+
+        if (startRequest.getValues() != null || startRequest.getOutcome() != null) {
+            BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinition.getId());
+            Process process = bpmnModel.getProcessById(processDefinition.getKey());
+            FlowElement startElement = process.getInitialFlowElement();
+            if (startElement instanceof StartEvent) {
+                StartEvent startEvent = (StartEvent) startElement;
+                if (StringUtils.isNotEmpty(startEvent.getFormKey())) {
+                    formDefinition = formRepositoryService.getFormDefinitionByKey(startEvent.getFormKey());
+                    if (formDefinition != null) {
+                        variables = formService.getVariablesFromFormSubmission(formDefinition, startRequest.getValues(), startRequest.getOutcome());
+                    }
+                }
+            }
         }
-      }*/
 
-    HistoricProcessInstance historicProcess = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstance.getId()).singleResult();
+        ProcessInstance processInstance = activitiService.startProcessInstance(startRequest.getProcessDefinitionId(), variables, startRequest.getName());
 
-    if (formDefinition != null) {
-      formService.storeSubmittedForm(variables, formDefinition, null, historicProcess.getId());
+        //发起OA待办处理逻辑
+        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinition.getId());
+        Process process = bpmnModel.getProcesses().get(bpmnModel.getProcesses().size() - 1);
+        FlowElement initialFlowElement = process.getInitialFlowElement();
+        List<UserTask> nextNode =
+                new ActivitiTaskNodeInfoService().getNextNode(processDefinition.getId(), initialFlowElement.getId(), variables);
+        OAHelper oaHelper = new OAHelper();
+        UserQuery userQuery = identityService.createUserQuery();
+        for (UserTask userTask : nextNode) {
+            //发送OA代办
+            List<String> candidateUsers = userTask.getCandidateUsers();
+            if (candidateUsers != null && candidateUsers.size() > 0) {
+                for (String candidateUser : candidateUsers) {
+                    User user = userQuery.userId(candidateUser).singleResult();
+                    oaHelper.addOAEvent(userTask.getId(), candidateUser, user.getLastName() + user.getFirstName());
+                }
+            } else {
+                User user = userQuery.userId(userTask.getAssignee()).singleResult();
+                oaHelper.addOAEvent(userTask.getId(), userTask.getAssignee(), user.getLastName() + user.getFirstName());
+            }
+        }
+        //OA待办逻辑处理结束
+
+        HistoricProcessInstance historicProcess = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstance.getId()).singleResult();
+
+        if (formDefinition != null) {
+            formService.storeSubmittedForm(variables, formDefinition, null, historicProcess.getId());
+        }
+
+        User user = null;
+        if (historicProcess.getStartUserId() != null) {
+            CachedUser cachedUser = userCache.getUser(historicProcess.getStartUserId());
+            if (cachedUser != null && cachedUser.getUser() != null) {
+                user = cachedUser.getUser();
+            }
+        }
+        return new ProcessInstanceRepresentation(historicProcess, processDefinition, ((ProcessDefinitionEntity) processDefinition).isGraphicalNotationDefined(), user);
+
     }
-    
-    User user = null;
-    if (historicProcess.getStartUserId() != null) {
-      CachedUser cachedUser = userCache.getUser(historicProcess.getStartUserId());
-      if (cachedUser != null && cachedUser.getUser() != null) {
-        user = cachedUser.getUser();
-      }
+
+    protected Map<String, List<RelatedContent>> groupContentByField(Page<RelatedContent> allContent) {
+        HashMap<String, List<RelatedContent>> result = new HashMap<String, List<RelatedContent>>();
+        List<RelatedContent> list;
+        for (RelatedContent content : allContent.getContent()) {
+            list = result.get(content.getField());
+            if (list == null) {
+                list = new ArrayList<RelatedContent>();
+                result.put(content.getField(), list);
+            }
+            list.add(content);
+        }
+        return result;
     }
-    return new ProcessInstanceRepresentation(historicProcess, processDefinition, ((ProcessDefinitionEntity) processDefinition).isGraphicalNotationDefined(), user);
 
-  }
-
-  protected Map<String, List<RelatedContent>> groupContentByField(Page<RelatedContent> allContent) {
-    HashMap<String, List<RelatedContent>> result = new HashMap<String, List<RelatedContent>>();
-    List<RelatedContent> list;
-    for (RelatedContent content : allContent.getContent()) {
-      list = result.get(content.getField());
-      if (list == null) {
-        list = new ArrayList<RelatedContent>();
-        result.put(content.getField(), list);
-      }
-      list.add(content);
+    protected RelatedContentRepresentation createRelatedContentResponse(RelatedContent relatedContent) {
+        RelatedContentRepresentation relatedContentResponse = new RelatedContentRepresentation(relatedContent, typeMapper);
+        return relatedContentResponse;
     }
-    return result;
-  }
-
-  protected RelatedContentRepresentation createRelatedContentResponse(RelatedContent relatedContent) {
-    RelatedContentRepresentation relatedContentResponse = new RelatedContentRepresentation(relatedContent, typeMapper);
-    return relatedContentResponse;
-  }
 }

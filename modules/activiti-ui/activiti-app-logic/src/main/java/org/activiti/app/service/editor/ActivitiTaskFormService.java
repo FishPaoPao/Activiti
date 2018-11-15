@@ -22,14 +22,14 @@ import org.activiti.app.model.runtime.ProcessInstanceVariableRepresentation;
 import org.activiti.app.security.SecurityUtils;
 import org.activiti.app.service.exception.NotFoundException;
 import org.activiti.app.service.exception.NotPermittedException;
+import org.activiti.app.service.oa.OAHelper;
 import org.activiti.app.service.runtime.PermissionService;
-import org.activiti.engine.ActivitiException;
-import org.activiti.engine.HistoryService;
-import org.activiti.engine.RepositoryService;
-import org.activiti.engine.TaskService;
+import org.activiti.bpmn.model.UserTask;
+import org.activiti.engine.*;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.identity.User;
+import org.activiti.engine.identity.UserQuery;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.task.Task;
 import org.activiti.form.api.FormRepositoryService;
@@ -72,10 +72,14 @@ public class ActivitiTaskFormService {
   @Autowired
   protected ObjectMapper objectMapper;
 
+  @Autowired
+  protected IdentityService identityService;
+
   public FormDefinition getTaskForm(String taskId) {
-    HistoricTaskInstance task = permissionService.validateReadPermissionOnTask(SecurityUtils.getCurrentUserObject(), taskId);
-    
-    Map<String, Object> variables = new HashMap<String, Object>();
+    //HistoricTaskInstance task = permissionService.validateReadPermissionOnTask(SecurityUtils.getCurrentUserObject(), taskId);
+    //根据任务ID获取任务实例，取消权限验证
+      HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().taskId(taskId).singleResult();
+      Map<String, Object> variables = new HashMap<String, Object>();
     if (task.getProcessInstanceId() != null) {
       List<HistoricVariableInstance> variableInstances = historyService.createHistoricVariableInstanceQuery()
           .processInstanceId(task.getProcessInstanceId())
@@ -139,8 +143,35 @@ public class ActivitiTaskFormService {
         completeTaskFormRepresentation.getOutcome());
 
     formService.storeSubmittedForm(variables, formDefinition, task.getId(), task.getProcessInstanceId());
-    
+
+    //OA代办处理逻辑
+    OAHelper oaHelper = new OAHelper();
+    //删除OA代办
+    String userId = task.getAssignee();
+    UserQuery userQuery = identityService.createUserQuery();
+    User user = userQuery.userId(userId).singleResult();
+    String userName = user.getLastName() + user.getFirstName();
+    oaHelper.removeOAEvent(taskId, userId, userName);
+
     taskService.complete(taskId, variables);
+
+    //新增OA代办
+    //获取下一流程节点（UserTask）
+    List<UserTask> nextNode
+              = new ActivitiTaskNodeInfoService().getNextNode(task.getProcessDefinitionId(), task.getTaskDefinitionKey(), variables);
+    for (UserTask userTask : nextNode){
+        //发送OA代办
+        List<String> candidateUsers = userTask.getCandidateUsers();
+        if (candidateUsers!= null && candidateUsers.size() > 0){
+            for (String candidateUser : candidateUsers){
+                user = userQuery.userId(candidateUser).singleResult();
+                oaHelper.addOAEvent(userTask.getId(), candidateUser, user.getLastName() + user.getFirstName());
+            }
+        } else {
+            user = userQuery.userId(userTask.getAssignee()).singleResult();
+            oaHelper.addOAEvent(userTask.getId(), userTask.getAssignee(), user.getLastName() + user.getFirstName());
+        }
+    }
   }
   
   public List<ProcessInstanceVariableRepresentation> getProcessInstanceVariables(String taskId) {

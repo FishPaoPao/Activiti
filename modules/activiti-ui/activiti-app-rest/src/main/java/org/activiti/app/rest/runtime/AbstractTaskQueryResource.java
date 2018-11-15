@@ -124,6 +124,11 @@ public abstract class AbstractTaskQueryResource {
       handleAssignment(taskInfoQueryWrapper, assignmentNode, currentUser);
     }
 
+    JsonNode assigneeNode = requestNode.get("assignee");
+    if(assigneeNode != null && requestNode.isNull() == false){
+      handelAssignee(taskInfoQueryWrapper, assigneeNode);
+    }
+
     JsonNode processDefinitionNode = requestNode.get("processDefinitionId");
     if (processDefinitionNode != null && processDefinitionNode.isNull() == false) {
       handleProcessDefinition(taskInfoQueryWrapper, processDefinitionNode);
@@ -210,6 +215,11 @@ public abstract class AbstractTaskQueryResource {
         taskInfoQueryWrapper.getTaskInfoQuery().taskInvolvedUser(currentUserId);
       }
     }
+  }
+
+  private void handelAssignee(TaskInfoQueryWrapper taskInfoQueryWrapper, JsonNode assigneeNode){
+    String assignee = assigneeNode.asText();
+    taskInfoQueryWrapper.getTaskInfoQuery().taskAssignee(assignee);
   }
 
   private void handleProcessDefinition(TaskInfoQueryWrapper taskInfoQueryWrapper, JsonNode processDefinitionIdNode) {
